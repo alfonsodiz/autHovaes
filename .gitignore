@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Bundle de despregamento (binarios grandes, non versionables)
+recursos/python-portable/
+recursos/paddleocr-json/
+recursos/libs/
+*.zip
+*.exe
+*.dll
+*.bin
+*.so
+*.dylib
+
+# Catálogo territorial
+# Escenario B: o catálogo NON se versiona no repo.
+# Motivo: licenza orixinal (Hovaes) non confirmada.
+# Obxectivo a medio prazo: substituír por extracto propio do Nomenclátor (INE, dominio público).
+recursos/catalogo-hovaes-lugares-galicia-completo.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporais
+*.tmp
+*.log
+arquivos.txt
+Texto pegado.txt
+
+# Configuración local de IDE
+.vscode/
+.idea/
+*.swp

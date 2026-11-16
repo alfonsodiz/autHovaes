@@ -1,0 +1,16 @@
+# Forza LF en todos os ficheiros de texto, para non introducir variacións
+# de LF/CRLF no repo (o problema de codificación do transporte é outro,
+# pero isto evita que o repo engada ruído).
+* text=auto eol=lf
+
+# Ficheiros que deben conservarse tal cal
+*.json   text eol=lf
+*.md     text eol=lf
+*.py     text eol=lf
+*.bat    text eol=crlf
+*.ps1    text eol=crlf
+*.exe    binary
+*.dll    binary
+*.bin    binary
+*.so     binary
+*.dylib  binary
