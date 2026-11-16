@@ -38,3 +38,9 @@ Texto pegado.txt
 .vscode/
 .idea/
 *.swp
+
+# Imágenes generadas por el pipeline OCR (temporales de trabajo, no se versionan)
+recursos/salida/
+
+# PDFs de exemplo (datos de proba, non se versionan)
+recursos/pdfs-exemplo/
