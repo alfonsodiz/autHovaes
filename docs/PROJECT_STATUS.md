@@ -2,7 +2,11 @@
 
 ## Fase actual
 
-Definición de arquitectura cerrada. Documentación en castellano. Repositorio GitHub privado inicializado (`https://github.com/alfonsodiz/autHovaes`). Catálogo fuera del repo (escenario B).
+**Implementación** (no «Definición de arquitectura»). La fase de arquitectura está cerrada con las ADR-001 y ADR-003 aceptadas y documentadas. El pipeline OCR mínimo (PDF → imagen) está funcionando en modo de prueba.
+
+- Fase: **Implementación**
+- Documentación: castellano (sin cambiar la política de traducción)
+- Repositorio: `https://github.com/alfonsodiz/autHovaes` (privado)
 
 ## Completado
 
@@ -14,23 +18,33 @@ Definición de arquitectura cerrada. Documentación en castellano. Repositorio G
 - [x] Traducción al castellano de los 21 ficheros `.md`
 - [x] Corrección de mojibake en `CATALOGS.md`, `DATA_MODEL.md`, `DEVELOPMENT_ENVIRONMENT.md`
 - [x] `GLOSARIO.md` creado
-- [x] ADR-003: extracción PDF -> imagen (`pypdfium2`)
-- [x] ADR-001: runtime OCR (PaddleOCR-json) y mecanismo de comunicación (HTTP local + `.bat`)
+- [x] ADR-001: runtime OCR (PaddleOCR-json + HTTP local + `.bat` manual + fichero de estado `%TEMP%`)
+- [x] ADR-003: extracción PDF → imagen (`pypdfium2`)
 - [x] `OCR_PIPELINE.md` completado (umbrales, N, duplicados)
-- [x] Repositorio GitHub privado inicializado con documentación
+- [x] `DEPLOYMENT_CONSTRAINTS.md` actualizado (Native Messaging descartado, HTTP local documentado, bundle permitido)
+- [x] Implementación del pipeline OCR mínimo
+  - `scripts/ocr.py`: PDF → imagen PNG (pypdfium2, 300 DPI configurable)
+  - `iniciar_ocr.bat`: lanza `python.exe scripts/ocr.py`
+  - `scripts/__init__.py`: paquete de `scripts/`
+- [x] Prueba de humo con `solicitude-001.pdf` (2473 × 3378 px, A4 a 300 DPI)
+- [x] Repositorio GitHub privado (`https://github.com/alfonsodiz/autHovaes`) con implementación mínima
+- [x] Commit `28722d4`: «Pipeline OCR mínimo: PDF -> imagen con pypdfium2 (300 DPI)»
 
 ## En curso
 
-- [ ] Implementación del pipeline OCR (`scripts/ocr.py`, `iniciar_ocr.bat`)
-- [ ] Implementación de la extensión Chrome (`manifest.json`, `background.js`, `content.js`)
+- [ ] Probar los dos PDFs restantes (`solicitude-002`, `solicitude-003`) y verificar visualmente la rasterización de `scripts/ocr.py`.
+- [ ] Integrar PaddleOCR-json en el pipeline (imagen → texto OCR).
+- [ ] Normalización de texto.
+- [ ] Matching territorial (Levenshtein + validación por prefijo INE).
+- [ ] Contrato JSON (`DATA_MODEL.md` como fichero, no solo como documento).
+- [ ] Extensión Chrome (`manifest.json`, `background.js`, `content.js`).
+- [ ] Baseline con PDFs reales (`OCR_VALIDATION.md`).
+- [ ] Mapeo `codAnoAcademico` → año (pendiente de recibir el JSON del formulario).
 
 ## Pendiente
 
-- [ ] Baseline de OCR con PDFs reales
-- [ ] Selectores de la extensión: espera de carga dinámica y disparo de `change` en cascada
-- [ ] Mapeo `codAnoAcademico` -> año (pendiente de recibir el JSON)
-- [ ] Licencia del proyecto (o confirmar que se mantiene sin licencia)
-- [ ] (A medio plazo) Extractor propio del Nomenclátor para sustituir el catálogo de Hovaes (escenario C)
+- [ ] Licencia del proyecto (o confirmar que se mantiene sin licencia).
+- [ ] (A medio plazo) Extractor propio del Nomenclátor para sustituir el catálogo de Hovaes (escenario C).
 
 ## Riesgos
 
@@ -40,3 +54,4 @@ Definición de arquitectura cerrada. Documentación en castellano. Repositorio G
 - Licencia del catálogo original no confirmada. Mitigación: catálogo fuera del repo; sustitución a medio plazo por extracto del Nomenclátor.
 - Carga dinámica de los selects del formulario: la extensión debe esperar y disparar `change` en cascada.
 - HTTP local: bind solo a `127.0.0.1`, CORS estricto, token compartido (ver ADR-001).
+- Prueba visual pendiente de los PDFs `solicitude-002` y `solicitude-003`.

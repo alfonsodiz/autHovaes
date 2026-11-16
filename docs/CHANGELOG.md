@@ -29,7 +29,7 @@
 - Descatalogados eliminados en la extracción.
 - Duplicados (23) devueltos como candidatos múltiples.
 
-### 2026-11-16
+### 2026-11-16 (traducción y definición)
 
 #### Added
 
@@ -59,3 +59,43 @@
 - `.bat` lanzado manualmente por el usuario; la extensión no lanza procesos.
 - Umbrales de similitud: concello ≥ 0.70, localidad ≥ 0.75, lugar ≥ 0.80. N=5 para concello y localidad; todos los lugares que superen el umbral.
 - Duplicados presentados como filas separadas, con nombre completo y `codigo` visible.
+
+### 2026-11-16 (implementación del pipeline PDF → imagen)
+
+#### Added
+
+- `scripts/__init__.py` (baleiro, para que `scripts/` sea un paquete).
+- `scripts/ocr.py`: pipeline mínimo PDF → imagen. Extrae la primera página del PDF, la rasteriza con pypdfium2 a 300 DPI (configurable como argumento opcional) y guarda un PNG en `recursos/salida/`.
+- `iniciar_ocr.bat` en la raíz: lanza `python.exe scripts/ocr.py` con argumentos.
+- `sessions/SESSION-003.md`: registro de la sesión de implementación.
+- Bundle local (no versionado): Python Portable 3.14 + `pip` + `pypdfium2 5.15.2` + `Pillow` en `recursos/libs/`.
+
+#### Changed
+
+- `.gitignore`: añadidas las reglas `recursos/salida/` y `recursos/pdfs-exemplo/`.
+- `HANDOVER.md`: refleja el pipeline PDF → imagen y el commit `28722d4`.
+- `PROJECT_STATUS.md`: fase actual «Implementación», no «Definición de arquitectura».
+- `NEXT_SESSION.md`: el siguiente paso es integrar PaddleOCR-json, probar los dos PDFs restantes y empezar el matching territorial.
+
+#### Fixed
+
+- (ninguno)
+
+#### Decisions
+
+- Python 3.14 (embeddable) como versión del Python Portable. `pip` instalado con `get-pip.py` + edición de `python314._pth` (`import site` y `Lib\site-packages`).
+- Pillow añadido como dependencia explícita (necesario para `bitmap.to_pil()` de pypdfium2).
+- DPI por defecto 300, configurable como argumento opcional (`.\iniciar_ocr.bat <pdf> [dpi]`).
+- Salida en `recursos/salida/` (relativo al proyecto), no en `%TEMP%`.
+- Solo se procesa la primera página del PDF (ver `FORM_ANALYSIS.md` §Alcance del OCR).
+
+#### Pending
+
+- Probar los PDFs `solicitude-002.pdf` y `solicitude-003.pdf`.
+- Integrar PaddleOCR-json (imagen → texto OCR).
+- Normalización de texto.
+- Matching territorial (Levenshtein + validación por prefijo INE).
+- Contrato JSON (`DATA_MODEL.md`).
+- Extensión Chrome (`manifest.json`, `background.js`, `content.js`).
+- Baseline con PDFs reales (`OCR_VALIDATION.md`).
+- Mapeo `codAnoAcademico` → año (pendiente de recibir el JSON del formulario).
