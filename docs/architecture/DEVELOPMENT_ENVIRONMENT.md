@@ -95,3 +95,28 @@ Cuando se escriba una herramienta auxiliar:
 Este documento se creó después de que el script `init-project-docs.ps1` fallase al ejecutarse con `.\init-project-docs.ps1` y con `powershell.exe -ExecutionPolicy Bypass -File`. La solución aplicada fue `Get-Content .\init-project-docs.ps1 -Raw | Invoke-Expression`, que funcionó sin tocar políticas ni registro.
 
 Fecha del incidente: 2026-10-26.
+
+
+## 5. PowerShell 7 (pwsh)
+
+En el equipo de desarrollo está instalado **PowerShell 7** (`pwsh.exe`), además del Windows PowerShell 5.1 (`powershell.exe`).
+
+### Diferencias relevantes
+
+| | Windows PowerShell 5.1 | PowerShell 7 |
+|---|---|---|
+| Ejecutable | `powershell.exe` | `pwsh.exe` |
+| Ubicación típica | `C:\Windows\System32\WindowsPowerShell\v1.0\` | `C:\Program Files\PowerShell\7\` |
+| Política de ejecución | Bloqueada por GPO (`Restricted`) | **No bloqueada** (verificado) |
+| Integración con VS Code | Problemática (shell integration falla) | **Funciona correctamente** |
+
+### Consecuencias para el proyecto
+
+1. **Los scripts `.ps1` se pueden ejecutar con PowerShell 7** sin las restricciones de la GPO de PowerShell 5.1. Esto no cambia la decisión de usar `.bat` + `python.exe` para las herramientas auxiliares (sigue siendo la opción más portable), pero **desbloquea el uso de PowerShell 7 para tareas de desarrollo**.
+2. **VS Code debe usar PowerShell 7 como perfil de terminal por defecto** para evitar el error "Command completion could not be observed". Ver `.vscode/settings.json` (si existe).
+3. **La integración de shell de VS Code funciona con PowerShell 7**, lo que permite al agente de VS Code ver la salida de los comandos.
+
+### Verificación
+
+```powershell
+pwsh --version
