@@ -15,6 +15,7 @@ Salida:
 
 import json
 import math
+import re
 import subprocess
 import sys
 import unicodedata
@@ -132,6 +133,89 @@ ETIQUETAS = [
     ("ano academico", "anoAcademico", 1),
     ("exames oficiais superados", "examesOficiais", 1),
 ]
+
+# Lista exhaustiva de etiquetas del formulario (extraída del PDF limpio).
+# Se usa en `es_etiqueta` para descartar candidatos que sean etiquetas.
+ETIQUETAS_FORMULARIO = {
+    # Del PDF limpio (etiquetas mecanografiadas)
+    "nome",
+    "primeiro apelido",
+    "segundo apelido",
+    "nif pasaporte",
+    "tipo de via",
+    "nome da via",
+    "numero",
+    "bloque",
+    "andar",
+    "porta",
+    "parroquia",
+    "lugar",
+    "cp",
+    "provincia",
+    "concello",
+    "localidade",
+    "telefono",
+    "telefono mobil",
+    "correo electronico",
+    "data de nacemento",
+    "sexo",
+    "feminino",
+    "masculino",
+    "nome razon social",
+    "nome do titulo e ou estudos no sistema educativo estranxeiro",
+    "pais",
+    "nome do centro",
+    "ano academico",
+    "exames oficiais superados",
+    # Otras etiquetas que aparecen en el formulario (no en ETIQUETAS)
+    "ayuntamiento",
+    "fecha de nacimiento",
+    "nombre de la via",
+    "nombre dela via",
+    "piso",
+    "puerta",
+    "notifiquese a",
+    "persona solicitante",
+    "persona o entidad representante",
+    "eleccion del medio de notificacion preferente",
+    "electronica",
+    "postal",
+    "datos especificos del procedimiento",
+    "nivel de las ensenanzas que solicita en el sistema educativo espanol",
+    "nombre del titulo y o estudios en el sistema educativo espanol",
+    "documentacion que se presenta",
+    "con caracter general para todas las ensenanzas",
+    "ensenanzas de formacion profesional o de regimen especial",
+    "master en ensenanzas artisticas",
+    "outra documentacion",
+    "comprobacion de datos",
+    "dninie da persoa solicitante",
+    "dninie da persoa representante",
+    "oponome a consulta",
+    # Fragmentos que el OCR detecta como etiquetas
+    "nif",
+    "nie",
+    "dni",
+    "cif",
+    "nombre",
+    "apellido",
+    "domicilio",
+    "telefono",
+    "movil",
+    "correo",
+    "email",
+    "fecha",
+    "nacimiento",
+    "provincia",
+    "municipio",
+    "localidad",
+    "calle",
+    "numero",
+    "piso",
+    "puerta",
+    "codigo postal",
+    "cp",
+}
 
 # Mapeo campo -> id del formulario (para la extensión)
 CAMPO_A_ID = {
@@ -255,22 +339,47 @@ def ejecutar_paddleocr_json(imagen_path: Path) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Validación de formato por campo
+# ---------------------------------------------------------------------------
+
+def es_valor_valido(campo, valor):
+    """Devuelve True si el valor tiene el formato esperado para el campo."""
+    if not valor:
+        return False
+    valor = valor.strip()  # quitar espacios
+    if campo == "cp":
+        return bool(re.fullmatch(r"\d{5}", valor))
+    if campo == "dni":
+        return bool(re.fullmatch(r"\d{8}[A-Za-z]|[XYZxyz]\d{7}[A-Za-z]", valor))
+    if campo == "correo":
+        return "@" in valor
+    if campo == "dataNacemento":
+        return bool(re.fullmatch(r"\d{2}/\d{2}/\d{4}", valor))
+    if campo in ("telefono", "telefonoMovil"):
+        return bool(re.fullmatch(r"\d{9}", valor.replace(" ", "")))
+    if campo in ("numero", "bloque", "andar", "porta"):
+        return bool(re.fullmatch(r"\d{1,4}[A-Za-z]?", valor))
+    if campo == "sexo":
+        return valor in ("F", "M")
+    if campo == "anoAcademico":
+        return bool(re.fullmatch(r"\d{3,4}", valor))
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Matching por palabras clave
 # ---------------------------------------------------------------------------
 
 def asignar_etiquetas_a_campos(detecciones: list) -> dict:
     """
     Asigna detecciones a campos según etiquetas conocidas.
-
-    Estrategia:
+    
+    Estrategia diseñada para el formulario ED434A (etiquetas arriba, valores abajo):
     - Filtrar por confianza >= 0.4.
-    - Ordenar por y (arriba->abajo), luego x (izq->der).
-    - Para cada etiqueta conocida, buscar la detección que más se parezca
-      (Levenshtein, umbral >= 0.75).
-    - Una vez encontrada, buscar el valor entre las detecciones que estén:
-        * en la misma línea (|dy| < altura_etiqueta/2) y a la derecha
-        * o en la línea siguiente (0 < dy < 3*altura_etiqueta) y con x similar
-    - Asignar la más cercana en horizontal (misma línea) o vertical (siguiente).
+    - Encontrar todas las etiquetas (Levenshtein >= 0.75).
+    - Para cada etiqueta, buscar el valor DEBAJO (dy > 0).
+    - El valor debe estar alineado en la misma columna (dx pequeño).
+    - Validar el formato del valor según el campo.
     """
     validas = [d for d in detecciones if d["confidence"] >= 0.4]
     validas.sort(key=lambda d: (centro_bbox(d["bbox"])[1], centro_bbox(d["bbox"])[0]))
@@ -280,94 +389,87 @@ def asignar_etiquetas_a_campos(detecciones: list) -> dict:
     campos = {}
 
     def es_etiqueta(texto_norm):
-        """Devuelve True si el texto es (o se parece a) una etiqueta conocida."""
         for etq, _, _ in ETIQUETAS:
             if similitud(etq, texto_norm) >= 0.75:
                 return True
+        if texto_norm in ETIQUETAS_FORMULARIO:
+            return True
+        FRAGMENTOS = {"nif", "nie", "dni", "cif", "cp", "email", "mail"}
+        if len(texto_norm) <= 4 and texto_norm in FRAGMENTOS:
+            return True
         return False
 
-    for etiqueta_norm, campo, num_apariciones in ETIQUETAS:
-        if campo is None:
+    # 1. Encontrar todas las etiquetas
+    etiquetas_encontradas = []
+    for idx, d in enumerate(validas):
+        texto_norm = normalizar(d["raw_text"])
+        mejor_etq = None
+        mejor_score = 0.0
+        for etq, campo, num_ap in ETIQUETAS:
+            if campo is None:
+                continue
+            score = similitud(etq, texto_norm)
+            if score > mejor_score and score >= 0.75:
+                mejor_score = score
+                mejor_etq = (etq, campo, num_ap)
+        if mejor_etq is not None:
+            etiquetas_encontradas.append((idx, d, mejor_etq, mejor_score))
+
+    # 2. Procesar cada etiqueta
+    for idx, d, (etq, campo, num_ap), score in etiquetas_encontradas:
+        if idx in usadas_etiqueta:
             continue
+        usadas_etiqueta.add(idx)
 
-        # 1. Buscar la etiqueta
-        candidatas = []
-        for idx, d in enumerate(validas):
-            if idx in usadas_etiqueta:
+        # Calcular dimensiones de la etiqueta
+        if len(d["bbox"]) == 4:
+            xs = [p[0] for p in d["bbox"]]
+            ys = [p[1] for p in d["bbox"]]
+            ancho_e = max(xs) - min(xs)
+            altura_e = max(ys) - min(ys)
+        else:
+            ancho_e = 100
+            altura_e = 30
+
+        x_e, y_e = centro_bbox(d["bbox"])
+
+        mejor_valor = None
+        mejor_dist = float("inf")
+        mejor_idx_valor = None
+
+        for j, v in enumerate(validas):
+            if j == idx or j in usadas_valor or j in usadas_etiqueta:
                 continue
-            texto_norm = normalizar(d["raw_text"])
-            score = similitud(etiqueta_norm, texto_norm)
-            if score >= 0.75:
-                candidatas.append((score, idx, d))
-
-        candidatas.sort(key=lambda x: -x[0])
-
-        asignadas = 0
-        for score, idx, d in candidatas:
-            if asignadas >= num_apariciones:
-                break
-            if idx in usadas_etiqueta:
+            texto_v_norm = normalizar(v["raw_text"])
+            if es_etiqueta(texto_v_norm):
                 continue
 
-            usadas_etiqueta.add(idx)
+            x_v, y_v = centro_bbox(v["bbox"])
+            dy = y_v - y_e
+            dx = abs(x_v - x_e)
 
-            # 2. Buscar el valor en la misma línea o en la siguiente
-            x_e, y_e = centro_bbox(d["bbox"])
-            # Estimar altura y ancho de la etiqueta a partir del bbox
-            if len(d["bbox"]) == 4:
-                ys = [p[1] for p in d["bbox"]]
-                xs = [p[0] for p in d["bbox"]]
-                altura_e = max(ys) - min(ys)
-                ancho_e = max(xs) - min(xs)
-            else:
-                altura_e = 30
-                ancho_e = 100
+            # El valor debe estar DEBAJO (dy > 0, hasta 4 veces la altura de la etiqueta)
+            # Y alineado en la misma columna (dx menor que el ancho de la etiqueta)
+            if 0 < dy < 4 * altura_e and dx < ancho_e * 0.8:
+                # Preferimos el valor más cercano verticalmente
+                dist = dy
+                if dist < mejor_dist:
+                    mejor_dist = dist
+                    mejor_valor = v
+                    mejor_idx_valor = j
 
-            mejor_valor = None
-            mejor_dist = float("inf")
-            mejor_idx_valor = None
-            mejor_modo = None
-
-            for j, v in enumerate(validas):
-                if j == idx or j in usadas_valor or j in usadas_etiqueta:
-                    continue
-                texto_v_norm = normalizar(v["raw_text"])
-                if es_etiqueta(texto_v_norm):
-                    continue
-
-                x_v, y_v = centro_bbox(v["bbox"])
-                dy = y_v - y_e
-                dx = x_v - x_e
-
-                # Modo 1: misma línea, a la derecha
-                if abs(dy) < altura_e / 2 and dx > 0:
-                    dist = abs(dx)  # distancia horizontal
-                    if dist < mejor_dist:
-                        mejor_dist = dist
-                        mejor_valor = v
-                        mejor_idx_valor = j
-                        mejor_modo = "misma_linea"
-
-                # Modo 2: línea siguiente, x similar
-                elif 0 < dy < 3 * altura_e and abs(dx) < ancho_e:
-                    dist = dy  # distancia vertical
-                    if dist < mejor_dist:
-                        mejor_dist = dist
-                        mejor_valor = v
-                        mejor_idx_valor = j
-                        mejor_modo = "siguiente_linea"
-
-            if mejor_valor is not None:
+        if mejor_valor is not None:
+            valor = mejor_valor["raw_text"]
+            if es_valor_valido(campo, valor):
                 usadas_valor.add(mejor_idx_valor)
-                clave = campo if asignadas == 0 else f"{campo}_{asignadas + 1}"
+                clave = campo if campo not in campos else f"{campo}_2"
                 campos[clave] = {
-                    "value": mejor_valor["raw_text"] or None,
+                    "value": valor or None,
                     "confidence": mejor_valor["confidence"],
                     "bbox": mejor_valor["bbox"],
-                    "raw_text": mejor_valor["raw_text"],
-                    "status": "review" if mejor_valor["raw_text"] else "missing",
+                    "raw_text": valor,
+                    "status": "review" if valor else "missing",
                 }
-                asignadas += 1
 
     # Detectar sexo (FEMININO / MASCULINO)
     for d in validas:
@@ -392,7 +494,6 @@ def asignar_etiquetas_a_campos(detecciones: list) -> dict:
             break
 
     return campos
-
 
 # ---------------------------------------------------------------------------
 # Main
