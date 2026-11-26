@@ -30,6 +30,7 @@
 - [x] Corrección de 5 falsos positivos en matching por palabras clave (`MATCHING_ANALYSIS_2.md`)
   - Tolerancia vertical reducida de `6 * altura_e` a `3 * altura_e`
   - `es_valor_valido` descarta `nomeRepresentante` < 4 caracteres
+- [x] Baseline con PDFs manuscritos (`MATCHING_BASELINE_MANUSCRITOS.md`): ~49% coherencia, campos críticos (`dni`, `cp`, `dataNacemento`, `telefono`) no detectados.
 - [x] Baseline con PDFs mecanografiados (`MATCHING_BASELINE_MECANOGRAFADOS.md`, `MATCHING_ANALYSIS.md`): 100% coherencia en campos detectados
 - [x] Implementación del pipeline OCR mínimo
   - `scripts/ocr.py`: PDF → imagen PNG (pypdfium2, 300 DPI configurable)

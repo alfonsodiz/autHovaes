@@ -45,6 +45,14 @@ Continuar la implementación:
 
 LISTO PARA CONTINUAR
 
+## Notas de la sesión 006
+
+- Baseline de PDFs manuscritos ejecutado y analizado (`manuscrito-001`, `manuscrito-002`, `manuscrito-003`).
+- Tasa de coherencia ~49% con manuscritos (frente al ~84-92% con mecanografiados).
+- Campos que más fallan: `nome`/`apelidos`, `provincia`/`concello`/`localidade`, `correo`, `tipoVia`/`nomeVia`.
+- Campos casi no detectados: `dni`, `cp`, `dataNacemento`, `telefono`.
+- Informe: `docs/validation/MATCHING_BASELINE_MANUSCRITOS.md`.
+
 ## Notas de la sesión 005
 
 - Corregidos 5 falsos positivos en `scripts/ocr.py`:

@@ -33,10 +33,15 @@ Continuar la implementación del pipeline OCR y de la extensión Chrome. La fase
     - [x] `parroquia` no debe aceptar provincias (`OURENSE`)
     - [x] `nome` no debe aceptar tipos de vía (`AVENIDA`)
     - [x] `lugar` no debe aceptar emails
+- [x] Baseline de PDFs manuscritos (`manuscrito-001`, `manuscrito-002`, `manuscrito-003`):
+    - [x] Ejecutar pipeline con los 3 PDFs manuscritos
+    - [x] Analizar coherencia de campos (formato, etiquetas como valores, fragmentos)
+    - [x] Generar informe `docs/validation/MATCHING_BASELINE_MANUSCRITOS.md`
 
 ## Riesgos a vigilar
 
-- Precisión OCR en manuscrito (menos del 30% según estudio externo).
+- Precisión OCR en manuscrito (menos del 30% según estudio externo; tasa de coherencia ~49% medida en sesión 006).
+- Campos críticos no detectados en manuscritos: `dni`, `cp`, `dataNacemento`, `telefono`.
 - Carga dinámica de los selects del formulario: la extensión debe esperar y disparar `change` en cascada.
 - Duplicados: la UI debe presentarlos como filas separadas con código INE visible.
 - HTTP local: bind solo a `127.0.0.1`, CORS estricto, token compartido.

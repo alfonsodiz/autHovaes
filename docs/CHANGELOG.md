@@ -16,6 +16,24 @@
 
 ### 2026-11-26
 
+#### Added
+
+- `docs/validation/MATCHING_BASELINE_MANUSCRITOS.md`: informe de baseline de PDFs manuscritos con análisis de coherencia por campo.
+- `docs/sessions/SESSION-006.md`: registro de la sesión 006.
+
+#### Fixed
+
+- (ninguno)
+
+#### Changed
+
+- `docs/HANDOVER.md`: añadidas notas de la sesión 006 (baseline de manuscritos).
+- `docs/PROJECT_STATUS.md`: marcado baseline de manuscritos como completado.
+- `docs/NEXT_SESSION.md`: añadidas tareas completadas de sesión 006 y riesgos actualizados.
+- `docs/validation/MATCHING_ANALYSIS_2.md`: informe de sesión 005 (mecanografiados).
+
+### 2026-11-26
+
 #### Fixed
 
 - `scripts/ocr.py`: reducida tolerancia vertical de `6 * altura_e` a `3 * altura_e` para evitar que una etiqueta coja valores de columnas más abajo (falsos positivos: `nome = AVENIDA`, `parroquia = OURENSE`, `lugar = email`).
