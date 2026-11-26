@@ -6,7 +6,6 @@ Continuar la implementación del pipeline OCR y de la extensión Chrome. La fase
 
 ## Tareas
 
-- [ ] Probar los PDFs `solicitude-002.pdf` y `solicitude-003.pdf` y verificar visualmente el rasterizado.
 - [ ] Integrar PaddleOCR-json en `scripts/ocr.py` (imagen → texto OCR).
   - Verificar que `paddleocr-json.exe` se ejecuta.
   - Entender el formato de entrada/salida.
@@ -27,6 +26,13 @@ Continuar la implementación del pipeline OCR y de la extensión Chrome. La fase
 - Pipeline OCR completo: PDF → imagen → OCR → normalización → matching → JSON.
 - Extensión Chrome que precarga el JSON en el formulario ED434A.
 - Baseline de OCR con 10 PDFs.
+
+## Tareas completadas en esta sesión
+
+- [x] Corregir problemas de asignación de campos en `scripts/ocr.py`:
+    - [x] `parroquia` no debe aceptar provincias (`OURENSE`)
+    - [x] `nome` no debe aceptar tipos de vía (`AVENIDA`)
+    - [x] `lugar` no debe aceptar emails
 
 ## Riesgos a vigilar
 

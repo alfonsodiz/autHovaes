@@ -96,125 +96,99 @@ def distancia(a, b):
 # ---------------------------------------------------------------------------
 # Etiquetas conocidas -> campo del contrato
 # ---------------------------------------------------------------------------
-# Orden: las que aparecen primero en el PDF. Si hay duplicados (p. ej. "TIPO
-# DE VÍA" dos veces), se asignan por orden de aparición.
-# "consume_next" indica cuántas apariciones de la etiqueta hay en el PDF
-# (1 = solo una; 2 = dos, la primera para solicitante, la segunda para
-# notificación/representante).
+# Incluye variantes en gallego y castellano.
 ETIQUETAS = [
     # (etiqueta_normalizada, campo_json, num_apariciones)
+    # --- Nome ---
     ("nome", "nome", 1),
-    ("primeiro apelido", "primeiroApelido", 2),  # 1º solicitante, 2º representante
-    ("segundo apelido", "segundoApelido", 2),    # 1º solicitante, 2º representante
+    ("nombre", "nome", 1),
+    # --- Apelidos (solicitante e representante) ---
+    ("primeiro apelido", "primeiroApelido", 2),
+    ("primer apellido", "primeiroApelido", 2),
+    ("segundo apelido", "segundoApelido", 2),
+    ("segundo apellido", "segundoApelido", 2),
+    # --- DNI ---
     ("nif pasaporte", "dni", 1),
-    ("tipo de via", "tipoVia", 2),               # 1º solicitante, 2º notificación
+    ("nif", "dni", 1),
+    ("dni", "dni", 1),
+    # --- Enderezo (solicitante e notificación) ---
+    ("tipo de via", "tipoVia", 2),
     ("nome da via", "nomeVia", 2),
+    ("nombre de la via", "nomeVia", 2),
     ("numero", "numero", 2),
     ("bloque", "bloque", 2),
     ("andar", "andar", 2),
+    ("piso", "andar", 2),
     ("porta", "porta", 2),
+    ("puerta", "porta", 2),
     ("parroquia", "parroquia", 2),
     ("lugar", "lugar", 2),
     ("cp", "cp", 2),
+    ("codigo postal", "cp", 2),
     ("provincia", "provincia", 2),
     ("concello", "concello", 2),
+    ("ayuntamiento", "concello", 2),
     ("localidade", "localidade", 2),
+    ("localidad", "localidade", 2),
+    # --- Contacto ---
     ("telefono", "telefono", 1),
-    ("telefono mobil", "telefonoMovil", 2),      # 1º solicitante, 2º notificación
-    ("correo electronico", "correo", 2),          # 1º solicitante, 2º notificación
+    ("telefono mobil", "telefonoMovil", 2),
+    ("telefono movil", "telefonoMovil", 2),
+    ("correo electronico", "correo", 2),
+    # --- Datos personais ---
     ("data de nacemento", "dataNacemento", 1),
+    ("fecha de nacimiento", "dataNacemento", 1),
     ("sexo", "sexo", 1),
-    ("feminino", None, 0),                        # solo valor, no campo
+    ("xenero", "sexo", 1),
+    ("genero", "sexo", 1),
+    ("feminino", None, 0),
+    ("femenino", None, 0),
     ("masculino", None, 0),
+    # --- Representante ---
     ("nome razon social", "nomeRepresentante", 1),
+    ("nombre razon social", "nomeRepresentante", 1),
+    # --- Datos específicos do procedemento ---
     ("nome do titulo e ou estudos no sistema educativo estranxeiro", "tituloEstranxeiro", 1),
-    ("pais", "paisTitulo", 2),                    # 1º país dirección, 2º país título
+    ("nombre del titulo y o estudios en el sistema educativo extranjero", "tituloEstranxeiro", 1),
+    ("pais", "paisTitulo", 2),
     ("nome do centro", "nomeCentro", 1),
+    ("nombre del centro", "nomeCentro", 1),
     ("ano academico", "anoAcademico", 1),
     ("exames oficiais superados", "examesOficiais", 1),
+    ("examenes oficiales superados", "examesOficiais", 1),
 ]
 
-# Lista exhaustiva de etiquetas del formulario (extraída del PDF limpio).
-# Se usa en `es_etiqueta` para descartar candidatos que sean etiquetas.
+# Lista exhaustiva de etiquetas del formulario (para descartar candidatos).
 ETIQUETAS_FORMULARIO = {
     # Del PDF limpio (etiquetas mecanografiadas)
-    "nome",
-    "primeiro apelido",
-    "segundo apelido",
-    "nif pasaporte",
-    "tipo de via",
-    "nome da via",
-    "numero",
-    "bloque",
-    "andar",
-    "porta",
-    "parroquia",
-    "lugar",
-    "cp",
-    "provincia",
-    "concello",
-    "localidade",
-    "telefono",
-    "telefono mobil",
-    "correo electronico",
-    "data de nacemento",
-    "sexo",
-    "feminino",
-    "masculino",
-    "nome razon social",
+    "nome", "nombre", "primeiro apelido", "primer apellido",
+    "segundo apelido", "segundo apellido", "nif pasaporte", "nif",
+    "dni", "tipo de via", "nome da via", "nombre de la via",
+    "numero", "bloque", "andar", "piso", "porta", "puerta",
+    "parroquia", "lugar", "cp", "codigo postal", "provincia",
+    "concello", "ayuntamiento", "localidade", "localidad",
+    "telefono", "telefono mobil", "telefono movil",
+    "correo electronico", "data de nacemento", "fecha de nacimiento",
+    "sexo", "xenero", "genero", "feminino", "femenino", "masculino",
+    "nome razon social", "nombre razon social",
     "nome do titulo e ou estudos no sistema educativo estranxeiro",
-    "pais",
-    "nome do centro",
-    "ano academico",
-    "exames oficiais superados",
-    # Otras etiquetas que aparecen en el formulario (no en ETIQUETAS)
-    "ayuntamiento",
-    "fecha de nacimiento",
-    "nombre de la via",
-    "nombre dela via",
-    "piso",
-    "puerta",
-    "notifiquese a",
-    "persona solicitante",
-    "persona o entidad representante",
-    "eleccion del medio de notificacion preferente",
-    "electronica",
-    "postal",
+    "nombre del titulo y o estudios en el sistema educativo extranjero",
+    "pais", "nome do centro", "nombre del centro",
+    "ano academico", "exames oficiais superados", "examenes oficiales superados",
+    # Otras etiquetas que aparecen en el formulario
+    "notifiquese a", "persona solicitante", "persona o entidad representante",
+    "eleccion del medio de notificacion preferente", "electronica", "postal",
     "datos especificos del procedimiento",
     "nivel de las ensenanzas que solicita en el sistema educativo espanol",
     "nombre del titulo y o estudios en el sistema educativo espanol",
-    "documentacion que se presenta",
-    "con caracter general para todas las ensenanzas",
+    "documentacion que se presenta", "con caracter general para todas las ensenanzas",
     "ensenanzas de formacion profesional o de regimen especial",
-    "master en ensenanzas artisticas",
-    "outra documentacion",
-    "comprobacion de datos",
-    "dninie da persoa solicitante",
-    "dninie da persoa representante",
-    "oponome a consulta",
-    # Fragmentos que el OCR detecta como etiquetas
-    "nif",
-    "nie",
-    "dni",
-    "cif",
-    "nombre",
-    "apellido",
-    "domicilio",
-    "telefono",
-    "movil",
-    "correo",
-    "email",
-    "fecha",
-    "nacimiento",
-    "provincia",
-    "municipio",
-    "localidad",
-    "calle",
-    "numero",
-    "piso",
-    "puerta",
-    "codigo postal",
-    "cp",
+    "master en ensenanzas artisticas", "outra documentacion",
+    "comprobacion de datos", "dninie da persoa solicitante",
+    "dninie da persoa representante", "oponome a consulta",
+    # Fragmentos
+    "nie", "cif", "apellido", "domicilio", "movil", "correo", "email",
+    "fecha", "nacimiento", "municipio", "calle",
 }
 
 # Mapeo campo -> id del formulario (para la extensión)
@@ -346,7 +320,9 @@ def es_valor_valido(campo, valor):
     """Devuelve True si el valor tiene el formato esperado para el campo."""
     if not valor:
         return False
-    valor = valor.strip()  # quitar espacios
+    valor = valor.strip()
+    if campo == "nomeRepresentante" and len(valor) < 4:
+        return False
     if campo == "cp":
         return bool(re.fullmatch(r"\d{5}", valor))
     if campo == "dni":
@@ -373,13 +349,14 @@ def es_valor_valido(campo, valor):
 def asignar_etiquetas_a_campos(detecciones: list) -> dict:
     """
     Asigna detecciones a campos según etiquetas conocidas.
-    
-    Estrategia diseñada para el formulario ED434A (etiquetas arriba, valores abajo):
+
+    Estrategia (formulario ED434A: etiquetas arriba, valores abajo):
     - Filtrar por confianza >= 0.4.
     - Encontrar todas las etiquetas (Levenshtein >= 0.75).
     - Para cada etiqueta, buscar el valor DEBAJO (dy > 0).
     - El valor debe estar alineado en la misma columna (dx pequeño).
     - Validar el formato del valor según el campo.
+    - Si no se encuentra o no es válido, dejar el campo como missing.
     """
     validas = [d for d in detecciones if d["confidence"] >= 0.4]
     validas.sort(key=lambda d: (centro_bbox(d["bbox"])[1], centro_bbox(d["bbox"])[0]))
@@ -448,10 +425,9 @@ def asignar_etiquetas_a_campos(detecciones: list) -> dict:
             dy = y_v - y_e
             dx = abs(x_v - x_e)
 
-            # El valor debe estar DEBAJO (dy > 0, hasta 4 veces la altura de la etiqueta)
+            # El valor debe estar DEBAJO (dy > 0, hasta 3 veces la altura de la etiqueta)
             # Y alineado en la misma columna (dx menor que el ancho de la etiqueta)
-            if 0 < dy < 4 * altura_e and dx < ancho_e * 0.8:
-                # Preferimos el valor más cercano verticalmente
+            if 0 < dy < 3 * altura_e and dx < ancho_e * 0.8:
                 dist = dy
                 if dist < mejor_dist:
                     mejor_dist = dist
@@ -494,6 +470,7 @@ def asignar_etiquetas_a_campos(detecciones: list) -> dict:
             break
 
     return campos
+
 
 # ---------------------------------------------------------------------------
 # Main

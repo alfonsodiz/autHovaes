@@ -35,13 +35,20 @@ Implementación activa. La fase de definición de arquitectura está cerrada: to
 ## Próxima acción recomendada
 
 Continuar la implementación:
-1. Probar los dos PDFs restantes y verificar visualmente.
-2. Integrar PaddleOCR-json (imagen → texto OCR).
-3. Normalización de texto.
-4. Matching territorial.
-5. Extensión Chrome.
-6. Baseline con PDFs reales.
+1. Integrar PaddleOCR-json (imagen → texto OCR).
+2. Normalización de texto.
+3. Matching territorial.
+4. Extensión Chrome.
+5. Baseline con PDFs reales.
 
 ## Estado
 
 LISTO PARA CONTINUAR
+
+## Notas de la sesión 005
+
+- Corregidos 5 falsos positivos en `scripts/ocr.py`:
+  - **Corrección A**: tolerancia vertical reducida de `6 * altura_e` a `3 * altura_e` (línea 430).
+  - **Corrección B**: `es_valor_valido` descarta `nomeRepresentante` con menos de 4 caracteres (líneas 324-325).
+- Verificado con ambos PDFs mecanografiados (`mecanografiado-001`, `mecanografiado-002`).
+- Informe: `docs/validation/MATCHING_ANALYSIS_2.md`.

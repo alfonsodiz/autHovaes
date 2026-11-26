@@ -14,6 +14,20 @@
 
 ## Registro
 
+### 2026-11-26
+
+#### Fixed
+
+- `scripts/ocr.py`: reducida tolerancia vertical de `6 * altura_e` a `3 * altura_e` para evitar que una etiqueta coja valores de columnas más abajo (falsos positivos: `nome = AVENIDA`, `parroquia = OURENSE`, `lugar = email`).
+- `scripts/ocr.py`: `es_valor_valido` descarta valores de `nomeRepresentante` con menos de 4 caracteres (falso positivo: `nomeRepresentante = ueipa`).
+
+#### Changed
+
+- `docs/HANDOVER.md`: reflejada corrección de falsos positivos y eliminación de problema abierto resuelto.
+- `docs/PROJECT_STATUS.md`: añadida corrección de 5 falsos positivos como completado.
+- `docs/NEXT_SESSION.md`: eliminadas tareas de corrección de campos (completadas) y añadido registro de tareas completadas.
+- `docs/validation/MATCHING_ANALYSIS_2.md`: nuevo informe de comparación antes/después.
+
 ### 2026-10-26
 
 #### Added
@@ -89,13 +103,31 @@
 - Salida en `recursos/salida/` (relativo al proyecto), no en `%TEMP%`.
 - Solo se procesa la primera página del PDF (ver `FORM_ANALYSIS.md` §Alcance del OCR).
 
-#### Pending
+### 2026-11-20 (mejora del matching por palabras clave)
 
-- Probar los PDFs `solicitude-002.pdf` y `solicitude-003.pdf`.
-- Integrar PaddleOCR-json (imagen → texto OCR).
-- Normalización de texto.
-- Matching territorial (Levenshtein + validación por prefijo INE).
-- Contrato JSON (`DATA_MODEL.md`).
-- Extensión Chrome (`manifest.json`, `background.js`, `content.js`).
-- Baseline con PDFs reales (`OCR_VALIDATION.md`).
-- Mapeo `codAnoAcademico` → año (pendiente de recibir el JSON del formulario).
+#### Added
+
+- Variantes en castellano de etiquetas en `scripts/ocr.py` (nombre, primer apellido, segundo apellido, tipo de vía, nombre de la vía, fecha de nacimiento, etc.)
+- Tolerancia vertical aumentada (6 × altura_e en lugar de 4 × altura_e) para buscar el valor debajo de la etiqueta
+- Validación de formato por campo (`es_valor_valido`): `cp` (5 dígitos), `dni` (8 dígitos + letra), `correo` (contiene @), `dataNacemento` (dd/mm/yyyy), `sexo` (F/M), `anoAcademico` (4 dígitos)
+- Lista `ETIQUETAS_FORMULARIO` para descartar etiquetas como valores
+
+#### Changed
+
+- `scripts/ocr.py`: búsqueda de valor desplazada de "misma línea a la derecha" a "debajo de la etiqueta, misma columna"
+- `docs/validation/MATCHING_BASELINE_MECANOGRAFADOS.md`: actualizado con resultados tras corrección
+- `docs/validation/MATCHING_ANALYSIS.md`: nuevo informe de comparación antes/después
+- `docs/HANDOVER.md`: reflejado nuevo estado del matching
+- `docs/PROJECT_STATUS.md`: matching por palabras clave marcado como completado
+- `docs/NEXT_SESSION.md`: tareas actualizadas con corrección de problemas de asignación
+
+#### Fixed
+
+- `cp` ya no se detecta como `AYUNTAMIENTO` (ahora detecta CP válido: `32500`, `32618`)
+- `tipoVia` ya no se detecta como `NOMBRE DE LA VIA` (ahora detecta `AVENIDA`, `Rua`)
+- `provincia` ya no se detecta como `AYUNTAMIENTO`
+
+#### Decisions
+
+- Buscar valor debajo de la etiqueta (no a la derecha) para adaptarse a formularios mecanografiados con etiquetas sobre el valor
+- Umbral de similitud para `es_etiqueta` mantenido en 0.75 para variantes en castellano

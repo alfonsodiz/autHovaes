@@ -26,6 +26,15 @@
   - `scripts/ocr.py`: PDF → imagen PNG (pypdfium2, 300 DPI configurable)
   - `iniciar_ocr.bat`: lanza `python.exe scripts/ocr.py`
   - `scripts/__init__.py`: paquete de `scripts/`
+- [x] Matching por palabras clave con variantes en castellano (nombre, apellido, tipo de vía, fecha de nacimiento, etc.)
+- [x] Corrección de 5 falsos positivos en matching por palabras clave (`MATCHING_ANALYSIS_2.md`)
+  - Tolerancia vertical reducida de `6 * altura_e` a `3 * altura_e`
+  - `es_valor_valido` descarta `nomeRepresentante` < 4 caracteres
+- [x] Baseline con PDFs mecanografiados (`MATCHING_BASELINE_MECANOGRAFADOS.md`, `MATCHING_ANALYSIS.md`): 100% coherencia en campos detectados
+- [x] Implementación del pipeline OCR mínimo
+  - `scripts/ocr.py`: PDF → imagen PNG (pypdfium2, 300 DPI configurable)
+  - `iniciar_ocr.bat`: lanza `python.exe scripts/ocr.py`
+  - `scripts/__init__.py`: paquete de `scripts/`
 - [x] Prueba de humo con `solicitude-001.pdf` (2473 × 3378 px, A4 a 300 DPI)
 - [x] Repositorio GitHub privado (`https://github.com/alfonsodiz/autHovaes`) con implementación mínima
 - [x] Commit `28722d4`: «Pipeline OCR mínimo: PDF -> imagen con pypdfium2 (300 DPI)»
