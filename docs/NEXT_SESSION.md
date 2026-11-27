@@ -20,6 +20,7 @@ Continuar la implementación del pipeline OCR y de la extensión Chrome. La fase
   - Inyección por `id` y disparo de `change` en cascada.
 - [ ] Baseline con PDFs reales (`OCR_VALIDATION.md`): 10 PDFs, marcar campos correctos/incorrectos por campo.
 - [ ] (Opcional) Recibir el JSON del mapeo `codAnoAcademico` → año y documentarlo en `FORM_ANALYSIS.md`.
+- [ ] Implementar la extensión Chrome (Opción A: precarga mínima). Ver `CHROME_EXTENSION.md`.
 
 ## Resultado esperado
 

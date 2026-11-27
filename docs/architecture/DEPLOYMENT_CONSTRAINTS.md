@@ -14,6 +14,7 @@
 - Chrome / Edge.
 - Extensión Chrome/Edge (cargada en modo desarrollador).
 - Bundle autocontenido en `.\recursos\`: `python-portable\`, `paddleocr-json\`, `libs\` (pypdfium2).
+- Extensión Chrome/Edge (cargada en modo desarrollador). Ver `CHROME_EXTENSION.md`.
 
 ## Prohibido asumir
 
@@ -42,3 +43,4 @@
 ## Lanzamiento del proceso Python
 
 **Manual**, por el usuario, mediante `iniciar_ocr.bat`. La extensión no puede lanzar procesos directamente (sin Native Messaging). Ver ADR-001.
+
