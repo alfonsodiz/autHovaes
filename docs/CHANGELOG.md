@@ -14,6 +14,31 @@
 
 ## Registro
 
+### 2026-11-27
+
+#### Added
+
+- `scripts/ocr.py`: umbral de corrección del matching territorial bajado de 0.85 a 0.80 (`UMBRAL_ACEPTAR_CONCELLO`, `UMBRAL_ACEPTAR_LOCALIDADE`, `UMBRAL_ACEPTAR_LUGAR`).
+- `docs/validation/MATCHING_TERRITORIAL_ANALYSIS_2.md`: informe de análisis antes/después del ajuste de umbral sobre los 5 PDFs de ejemplo.
+- `docs/sessions/SESSION-008.md`: registro de la sesión 008.
+
+#### Changed
+
+- `docs/HANDOVER.md`, `docs/PROJECT_STATUS.md`, `docs/NEXT_SESSION.md`: reflejado ajuste de umbral a 0.80.
+
+### 2026-11-27
+
+#### Added
+
+- `scripts/ocr.py`: matching territorial (`cargar_catalogo`, `normalizar_para_catalogo`, `buscar_en_catalogo`, `aplicar_matching_territorial`) sobre el catálogo de Galicia, con umbrales 0.70/0.75/0.80 y corrección automática a partir de 0.85; validación de prefijo INE; provincia derivada del concello.
+- `docs/validation/MATCHING_TERRITORIAL_ANALYSIS.md`: informe de análisis antes/después de los 5 PDFs de ejemplo.
+- `docs/sessions/SESSION-007.md`: registro de la sesión 007.
+
+#### Changed
+
+- `scripts/ocr.py`: `sys.stdout.reconfigure(encoding="utf-8")` para que la salida JSON vía redirección del `.bat` sea UTF-8 sin BOM.
+- `docs/HANDOVER.md`, `docs/PROJECT_STATUS.md`, `docs/NEXT_SESSION.md`: reflejado nuevo estado (matching territorial implementado).
+
 ### 2026-11-26
 
 #### Added

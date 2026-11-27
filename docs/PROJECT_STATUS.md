@@ -45,7 +45,8 @@
 - [ ] Probar los dos PDFs restantes (`solicitude-002`, `solicitude-003`) y verificar visualmente la rasterización de `scripts/ocr.py`.
 - [ ] Integrar PaddleOCR-json en el pipeline (imagen → texto OCR).
 - [ ] Normalización de texto.
-- [ ] Matching territorial (Levenshtein + validación por prefijo INE).
+- [x] Matching territorial (Levenshtein + validación por prefijo INE): implementado en `scripts/ocr.py` y ejecutado sobre los 5 PDFs de ejemplo (`docs/validation/MATCHING_TERRITORIAL_ANALYSIS.md`).
+- [x] Ajuste de umbral de corrección de 0.85 a 0.80; recuperado `mecanografiado-001` (concello "Carballiño (O)" 32019, score 0.8333) (`docs/validation/MATCHING_TERRITORIAL_ANALYSIS_2.md`).
 - [ ] Contrato JSON (`DATA_MODEL.md` como fichero, no solo como documento).
 - [ ] Extensión Chrome (`manifest.json`, `background.js`, `content.js`).
 - [ ] Baseline con PDFs reales (`OCR_VALIDATION.md`).

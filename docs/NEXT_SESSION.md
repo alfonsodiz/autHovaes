@@ -11,7 +11,7 @@ Continuar la implementación del pipeline OCR y de la extensión Chrome. La fase
   - Entender el formato de entrada/salida.
   - Mapear la salida al contrato JSON (`DATA_MODEL.md`).
 - [ ] Normalización de texto (minúsculas, sin tildes, espacios colapsados, sin paréntesis).
-- [ ] Matching territorial (Levenshtein + validación por prefijo INE), con umbrales 0.70/0.75/0.80 y N=5.
+- [x] Matching territorial (Levenshtein + validación por prefijo INE), con umbrales 0.70/0.75/0.80 y N=5: implementado y ejecutado sobre los 5 PDFs de ejemplo.
 - [ ] Escribir `iniciar_ocr.bat` definitivo (con socket HTTP local, fichero de estado en `%TEMP%`, token compartido).
 - [ ] Extensión Chrome (`manifest.json`, `background.js`, `content.js`).
   - Lectura del fichero de estado en `%TEMP%`.

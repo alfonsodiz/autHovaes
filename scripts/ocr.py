@@ -79,6 +79,231 @@ def similitud(a: str, b: str) -> float:
     return 1.0 - levenshtein(a, b) / max(len(a), len(b))
 
 
+# ---------------------------------------------------------------------------
+# Catálogo territorial (matching por niveles con códigos INE)
+# ---------------------------------------------------------------------------
+
+CATALOGO_PATH = _HERE.parent / "recursos" / "catalogo-hovaes-lugares-galicia-completo.json"
+
+PROVINCIA_NOMBRE_POR_CODIGO = {
+    "15": "Coruña (A)",
+    "27": "Lugo",
+    "32": "Ourense",
+    "36": "Pontevedra",
+}
+
+UMBRAL_ACEPTAR_CONCELLO = 0.80
+UMBRAL_ACEPTAR_LOCALIDADE = 0.80
+UMBRAL_ACEPTAR_LUGAR = 0.80
+
+_CATALOGO_CACHE = None
+
+
+def cargar_catalogo(path=CATALOGO_PATH):
+    """Carga el catálogo territorial con UTF-8 explícito (sin BOM)."""
+    global _CATALOGO_CACHE
+    if _CATALOGO_CACHE is None:
+        with open(path, "r", encoding="utf-8") as f:
+            _CATALOGO_CACHE = json.load(f)
+    return _CATALOGO_CACHE
+
+
+def normalizar_para_catalogo(texto: str) -> str:
+    """Igual que normalizar(): minúsculas, sin tildes, espacios colapsados."""
+    return normalizar(texto)
+
+
+def _nombre_provincia(codigo_concello: str):
+    """Devuelve {codigo, nome} de la provincia a partir de los 2 primeros dígitos del concello."""
+    codigo = codigo_concello[:2]
+    nombre = PROVINCIA_NOMBRE_POR_CODIGO.get(codigo)
+    if nombre is None:
+        return None
+    return {"codigo": codigo, "nome": nombre}
+
+
+def _items_concellos(catalogo):
+    items = []
+    for concellos in catalogo.values():
+        for nombre, datos in concellos.items():
+            items.append((nombre, datos["codigo"]))
+    return items
+
+
+def _items_localidades(catalogo, codigo_concello):
+    items = []
+    for concellos in catalogo.values():
+        for datos in concellos.values():
+            if datos["codigo"] != codigo_concello:
+                continue
+            for nombre, datos_loc in datos["localidades"].items():
+                items.append((nombre, datos_loc["codigo"]))
+            return items
+    return items
+
+
+def _items_lugares(catalogo, codigo_localidade):
+    items = []
+    for concellos in catalogo.values():
+        for datos in concellos.values():
+            for datos_loc in datos["localidades"].values():
+                if datos_loc["codigo"] != codigo_localidade:
+                    continue
+                for lugar in datos_loc["lugares"]:
+                    items.append((lugar["nome"], lugar["codigo"]))
+                return items
+    return items
+
+
+def aplicar_matching_territorial(campos, catalogo):
+    matching = {
+        "provincia": None,
+        "concello": None,
+        "localidade": None,
+        "lugar": None,
+        "match_confidence": 0.0,
+        "candidates": [],
+    }
+    scores_aceptados = []
+    valor_concello = _valor_campo(campos, "concello")
+    concello_aceptado = None
+    if valor_concello:
+        candidatos_concello = buscar_en_catalogo(catalogo, valor_concello, "concello")
+        if candidatos_concello:
+            mejor = candidatos_concello[0]
+            if mejor["score"] >= UMBRAL_ACEPTAR_CONCELLO:
+                _aceptar_campo(campos["concello"], mejor)
+                concello_aceptado = mejor
+                scores_aceptados.append(mejor["score"])
+                matching["concello"] = {"codigo": mejor["codigo"], "nome": mejor["nome"]}
+                matching["provincia"] = _nombre_provincia(mejor["codigo"])
+                if "provincia" in campos and campos["provincia"].get("value"):
+                    prov = matching["provincia"]
+                    if prov:
+                        campos["provincia"]["value"] = prov["nome"]
+                        campos["provincia"]["codigo_ine"] = prov["codigo"]
+                        campos["provincia"]["match_score"] = mejor["score"]
+    valor_localidade = _valor_campo(campos, "localidade")
+    codigo_concello = concello_aceptado["codigo"] if concello_aceptado else None
+    localidad_aceptada = None
+    if valor_localidade and codigo_concello:
+        candidatos_localidade = buscar_en_catalogo(catalogo, valor_localidade, "localidade", codigo_concello)
+        if candidatos_localidade:
+            mejor = candidatos_localidade[0]
+            if _cumple_prefijo(mejor["codigo"], codigo_concello) and mejor["score"] >= UMBRAL_ACEPTAR_LOCALIDADE:
+                _aceptar_campo(campos["localidade"], mejor)
+                localidad_aceptada = mejor
+                scores_aceptados.append(mejor["score"])
+                matching["localidade"] = {"codigo": mejor["codigo"], "nome": mejor["nome"]}
+    if codigo_concello and not localidad_aceptada and not valor_localidade:
+        valor_parroquia = _valor_campo(campos, "parroquia")
+        if valor_parroquia:
+            candidatos_localidade = buscar_en_catalogo(catalogo, valor_parroquia, "localidade", codigo_concello)
+            if candidatos_localidade:
+                mejor = candidatos_localidade[0]
+                if _cumple_prefijo(mejor["codigo"], codigo_concello) and mejor["score"] >= UMBRAL_ACEPTAR_LOCALIDADE:
+                    campos["localidade"] = {"value": mejor["nome"], "confidence": mejor["score"], "bbox": [], "raw_text": valor_parroquia, "status": "review", "codigo_ine": mejor["codigo"], "match_score": mejor["score"], "inferido": True}
+                    localidad_aceptada = mejor
+                    scores_aceptados.append(mejor["score"])
+                    matching["localidade"] = {"codigo": mejor["codigo"], "nome": mejor["nome"]}
+        if not localidad_aceptada:
+            valor_lugar = _valor_campo(campos, "lugar")
+            if valor_lugar:
+                inferida = _inferir_localidade_por_lugar(catalogo, codigo_concello, valor_lugar)
+                if inferida:
+                    campos["localidade"] = {"value": inferida["nome"], "confidence": inferida["score"], "bbox": [], "raw_text": valor_lugar, "status": "review", "codigo_ine": inferida["codigo"], "match_score": inferida["score"], "inferido": True}
+                    localidad_aceptada = inferida
+                    scores_aceptados.append(inferida["score"])
+                    matching["localidade"] = {"codigo": inferida["codigo"], "nome": inferida["nome"]}
+    valor_lugar = _valor_campo(campos, "lugar")
+    codigo_localidade = localidad_aceptada["codigo"] if localidad_aceptada else (campos.get("localidade") or {}).get("codigo_ine")
+    if valor_lugar and codigo_localidade:
+        candidatos_lugar = [c for c in buscar_en_catalogo(catalogo, valor_lugar, "lugar", codigo_localidade) if _cumple_prefijo(c["codigo"], codigo_localidade)]
+        if candidatos_lugar:
+            matching["candidates"] = candidatos_lugar
+            mejor = candidatos_lugar[0]
+            if mejor["score"] >= UMBRAL_ACEPTAR_LUGAR:
+                _aceptar_campo(campos["lugar"], mejor)
+                scores_aceptados.append(mejor["score"])
+                matching["lugar"] = {"codigo": mejor["codigo"], "nome": mejor["nome"]}
+    if scores_aceptados:
+        matching["match_confidence"] = round(min(scores_aceptados), 4)
+    return matching
+
+
+def _valor_campo(campos, nombre):
+    if nombre in campos and campos[nombre].get("value"):
+        return campos[nombre]["value"]
+    return None
+
+
+def _aceptar_campo(campo_datos, candidato):
+    campo_datos["value"] = candidato["nome"]
+    campo_datos["codigo_ine"] = candidato["codigo"]
+    campo_datos["match_score"] = candidato["score"]
+
+
+def _cumple_prefijo(codigo_hijo, codigo_padre):
+    return codigo_hijo.startswith(codigo_padre)
+
+
+def _inferir_localidade_por_lugar(catalogo, codigo_concello, texto_lugar):
+    texto_norm = normalizar_para_catalogo(texto_lugar)
+    por_localidade = {}
+    for codigo_loc, nombre_loc, nombre_lugar, codigo_lugar in _lugares_por_concello(catalogo, codigo_concello):
+        score = similitud(texto_norm, normalizar_para_catalogo(nombre_lugar))
+        if score >= 0.80:
+            prev = por_localidade.get(codigo_loc)
+            if prev is None or score > prev[0]:
+                por_localidade[codigo_loc] = (score, nombre_loc, nombre_lugar, codigo_lugar)
+    if not por_localidade:
+        return None
+    mejor_codigo = max(por_localidade, key=lambda c: por_localidade[c][0])
+    score, nombre_loc, nombre_lugar, codigo_lugar = por_localidade[mejor_codigo]
+    segundos = [s for s in por_localidade.values() if s[0] == score]
+    if len(segundos) > 1:
+        return None
+    return {"codigo": mejor_codigo, "nome": nombre_loc, "score": round(score, 4)}
+
+
+def _lugares_por_concello(catalogo, codigo_concello):
+    resultado = []
+    for concellos in catalogo.values():
+        for datos in concellos.values():
+            if datos["codigo"] != codigo_concello:
+                continue
+            for nombre_loc, datos_loc in datos["localidades"].items():
+                for lugar in datos_loc["lugares"]:
+                    resultado.append((datos_loc["codigo"], nombre_loc, lugar["nome"], lugar["codigo"]))
+            return resultado
+    return resultado
+
+
+def _candidatos(items, texto_ocr, umbral, maximo=None):
+    texto_norm = normalizar_para_catalogo(texto_ocr)
+    resultado = []
+    for nombre, codigo in items:
+        score = similitud(texto_norm, normalizar_para_catalogo(nombre))
+        if score >= umbral:
+            resultado.append({"codigo": codigo, "nome": nombre, "score": round(score, 4)})
+    resultado.sort(key=lambda c: (-c["score"], c["nome"]))
+    if maximo is not None:
+        resultado = resultado[:maximo]
+    return resultado
+
+
+def buscar_en_catalogo(catalogo, texto_ocr, nivel, codigo_padre=None):
+    if nivel == "concello":
+        return _candidatos(_items_concellos(catalogo), texto_ocr, 0.70, 5)
+    if nivel == "localidade":
+        return _candidatos(_items_localidades(catalogo, codigo_padre), texto_ocr, 0.75, 5)
+    if nivel == "lugar":
+        return _candidatos(_items_lugares(catalogo, codigo_padre), texto_ocr, 0.80)
+    if nivel == "provincia":
+        return []
+    return []
+
+
 def centro_bbox(bbox):
     """Centro (x, y) de un bbox de 4 puntos [[x,y],...]."""
     if not bbox or len(bbox) != 4:
@@ -346,9 +571,10 @@ def es_valor_valido(campo, valor):
 # Matching por palabras clave
 # ---------------------------------------------------------------------------
 
-def asignar_etiquetas_a_campos(detecciones: list) -> dict:
+def asignar_etiquetas_a_campos(detecciones: list, catalogo: dict = None):
     """
-    Asigna detecciones a campos según etiquetas conocidas.
+    Asigna detecciones a campos según etiquetas conocidas y ejecuta el
+    matching territorial si se pasa el catalogo.
 
     Estrategia (formulario ED434A: etiquetas arriba, valores abajo):
     - Filtrar por confianza >= 0.4.
@@ -357,6 +583,9 @@ def asignar_etiquetas_a_campos(detecciones: list) -> dict:
     - El valor debe estar alineado en la misma columna (dx pequeño).
     - Validar el formato del valor según el campo.
     - Si no se encuentra o no es válido, dejar el campo como missing.
+    - Despues, aplicar el matching territorial sobre concello/localidade/lugar.
+
+    Devuelve (campos, matching).
     """
     validas = [d for d in detecciones if d["confidence"] >= 0.4]
     validas.sort(key=lambda d: (centro_bbox(d["bbox"])[1], centro_bbox(d["bbox"])[0]))
@@ -469,7 +698,9 @@ def asignar_etiquetas_a_campos(detecciones: list) -> dict:
             }
             break
 
-    return campos
+    # Matching territorial (despues del matching por palabras clave)
+    matching = aplicar_matching_territorial(campos, catalogo) if catalogo else {}
+    return campos, matching
 
 
 # ---------------------------------------------------------------------------
@@ -492,20 +723,25 @@ def main(argv):
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
 
-    # Matching
-    fields = asignar_etiquetas_a_campos(detecciones)
+    # Matching territorial (carga el catalogo una vez con UTF-8 explicito)
+    catalogo = cargar_catalogo()
+    fields, matching = asignar_etiquetas_a_campos(detecciones, catalogo)
 
     # Añadir el id del formulario a cada campo
     for campo, datos in fields.items():
         if campo in CAMPO_A_ID:
             datos["form_id"] = CAMPO_A_ID[campo]
 
+    # UTF-8 explicito en stdout: la redireccion > fichero del .bat no transcodifica
+    # (en Windows consola usa cp1252; forzamos UTF-8 sin BOM para el JSON de salida)
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
     salida_json = {
         "version": "1.0",
         "source_pdf": pdf_path.name,
         "pages": 1,
         "fields": fields,
-        "matching": {},
+        "matching": matching,
     }
 
     print(json.dumps(salida_json, ensure_ascii=False, indent=2))
